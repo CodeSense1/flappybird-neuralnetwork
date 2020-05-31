@@ -13,8 +13,7 @@ GAP = 350
 
 def update():
 	print("Update loop\n")
-	if len(list(filter(lambda i: i[0].alive, birds))) == 0:
-		map(lambda b, g: b.resurrect(), birds)
+	
 	drawBirds()
 	drawPipes()
 	updateBirds()
@@ -27,6 +26,11 @@ def updateBirds():
 	for i in filter(lambda i: i[0].alive, birds):
 		bird, gfx = i
 		bird.update()
+
+		if bird.score == 15:
+			with open("data.dat", 'r+') as file:
+				file.write(str(bird.brain.weights))
+				file.write(str(bird.brain.bias))
 
 def drawBirds():
 
@@ -72,7 +76,10 @@ def checkCollision():
 		bird, gfx = i
 		x,y = bird.getPos()
 		pipe = obstacles[0]
+		
 		px, py, gap = pipe.getPos()
+		if x == px:
+			bird.score += 1
 		if (x > px and x < px+gap) and (y > py+gap or y < py):
 			bird.die()
 			canvas.delete(gfx)

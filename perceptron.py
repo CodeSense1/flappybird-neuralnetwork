@@ -9,10 +9,10 @@ class Perceptron:
         """ This is perceptron, the base component of neural network
             size: amount of inputs
         """
-        self.weights = []
-        self.bias = random()
-        for i in range(size):
-            self.weights.append(random() * 2 -1)
+        self.weights = [0.7037622574353122, 0.32062734201986753, -0.5060893642271465, -0.7281457029531304]
+        self.bias = 0.08683967162218453 # random()
+        # for i in range(size):
+        #     self.weights.append(random() * 2 -1)
 
     def predict(self, inputs):
         output = 0

@@ -19,7 +19,6 @@ class Bird():
         self.score = 0
 
     def update(self):
-        self.score += 1
         if not self.jumping:
             self.y += 10+random()
         else:
