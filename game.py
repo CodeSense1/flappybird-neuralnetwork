@@ -12,33 +12,41 @@ HEIGHT = 700
 GAP = 350
 
 def update():
-	print(len(canvas.find_all()))
+	print("Update loop\n")
+	if len(list(filter(lambda i: i[0].alive, birds))) == 0:
+		map(lambda b, g: b.resurrect(), birds)
 	drawBirds()
 	drawPipes()
-	bird.update()
+	updateBirds()
 	predict()
 	updatePipes()
 	checkCollision()
 	main.after(FRAMERATE, update) # Recursive function call
 
+def updateBirds():
+	for i in filter(lambda i: i[0].alive, birds):
+		bird, gfx = i
+		bird.update()
+
 def drawBirds():
 
-	for i in birds:
+	for i in filter(lambda i: i[0].alive, birds):
 		bird, birdGfx = i
+		print(birdGfx)
 		x,y = bird.getPos()
 		if y < 0:
 			y = 0
 		if y > HEIGHT:
 			y = HEIGHT
-		canvas.coords(birdGfx, x,y)
+		canvas.coords(birdGfx, x,y, x+10, y+10)
 
 def predict():
-	for i in birds:
+	for i in filter(lambda i: i[0].alive, birds):
 		bird, gfx = i
 		# Get pipe postition
 		x,y,gap = obstacles[0].getPos()
 		output = bird.predict( x, y, gap, height=HEIGHT, width=WIDTH )
-		if output > 0.5:
+		if output > 0.9:
 			bird.jump()
 	
 def drawPipes():
@@ -49,6 +57,7 @@ def drawPipes():
 			# Reset the pipe
 			pipe.setX(WIDTH)
 			pipe.setY(randint(30, HEIGHT-GAP-30))
+
 		
 		canvas.coords(upper, x, 0, x+20, y)
 		canvas.coords(lower, x, y+GAP, x+20, HEIGHT)
@@ -59,14 +68,14 @@ def updatePipes():
 		pipe.update()
 
 def checkCollision():
-	for i in birds:
+	for i in filter(lambda i: i[0].alive, birds):
 		bird, gfx = i
 		x,y = bird.getPos()
 		pipe = obstacles[0]
 		px, py, gap = pipe.getPos()
 		if (x > px and x < px+gap) and (y > py+gap or y < py):
 			bird.die()
-			birds.remove([bird, gfx])
+			canvas.delete(gfx)
 
 
 pipes = []
@@ -86,14 +95,15 @@ for i in range(100):
 
 	x, y = bird.getPos()
 	img = PhotoImage(file="images/bird.gif")
-	gfx = canvas.create_image(x, y,image=img)
+	y = y+random()*HEIGHT
+	gfx = canvas.create_rectangle(x, y,x+10, y+10, fill="orange")
 	
 	birds.append([bird, gfx])
 
 
 
 pipes.append([canvas.create_rectangle(0,HEIGHT/3, 20, GAP, fill='green'),
-				canvas.create_rectangle(0,HEIGHT/3, 20, GAP, fill='blue')])
+				canvas.create_rectangle(0,HEIGHT/3, 20, GAP, fill='green')])
 
 main.after(FRAMERATE, update)
 # main.bind("<space>", bird.jump) # Make neural network to press space

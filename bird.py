@@ -10,6 +10,7 @@ class Bird():
         self.x = x
         self.y = y
         self.jumping = False
+        self.alive = True
         self.jumpCount = 5
         self.brain = Perceptron(4)
 
@@ -38,8 +39,15 @@ class Bird():
         return self.x, self.y
 
     def die(self):
+        self.alive = False
         self.jumping = False
         self.jumpCount = 5
+
+    def resurrect(self):
+        self.alive = True
+        self.fittness = 0
+        self.score = 0
+        
         
     def calculateFittness(self):
         self.fittness = self.score
