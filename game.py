@@ -42,7 +42,7 @@ def drawBirds():
 			y = 0
 		if y > HEIGHT:
 			y = HEIGHT
-		canvas.coords(birdGfx, x,y, x+10, y+10)
+		canvas.coords(birdGfx, x,y)
 
 def predict():
 	for i in filter(lambda i: i[0].alive, birds):
@@ -97,13 +97,13 @@ canvas = Canvas(main, width=WIDTH, height=HEIGHT)
 canvas.pack()
 
 birds = []
-for i in range(100):
+for i in range(1):
 	bird = Bird(100, randint(50, 650))
 
 	x, y = bird.getPos()
 	img = PhotoImage(file="images/bird.gif")
 	y = y+random()*HEIGHT
-	gfx = canvas.create_rectangle(x, y,x+10, y+10, fill="orange")
+	gfx = canvas.create_image(x, y, image=img)
 	
 	birds.append([bird, gfx])
 
