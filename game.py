@@ -1,156 +1,100 @@
-from tkinter import *
-import random
+from tkinter import Tk, Canvas, PhotoImage, W, ALL
+from bird import Bird
+from pipe import Pipe
+from perceptron import Perceptron
+from random import randint, random
 import os
 
 FRAMERATE = 20
 SCORE = -1
+WIDTH = 550
+HEIGHT = 700
+GAP = 350
 
-def center(toplevel):
-	toplevel.update_idletasks()
-	w = toplevel.winfo_screenwidth()
-	h = toplevel.winfo_screenheight()
-	size = tuple(int(_) for _ in toplevel.geometry().split('+')[0].split('x'))
-	x = w/2 - size[0]/2
-	y = h/2 - size[1]/2 - 35
-	toplevel.geometry("%dx%d+%d+%d" % (size + (x, y)))
+def update():
+	print(len(canvas.find_all()))
+	drawBirds()
+	drawPipes()
+	bird.update()
+	predict()
+	updatePipes()
+	checkCollision()
+	main.after(FRAMERATE, update) # Recursive function call
+
+def drawBirds():
+
+	for i in birds:
+		bird, birdGfx = i
+		x,y = bird.getPos()
+		if y < 0:
+			y = 0
+		if y > HEIGHT:
+			y = HEIGHT
+		canvas.coords(birdGfx, x,y)
+
+def predict():
+	for i in birds:
+		bird, gfx = i
+		# Get pipe postition
+		x,y,gap = obstacles[0].getPos()
+		output = bird.predict( x, y, gap, height=HEIGHT, width=WIDTH )
+		if output > 0.5:
+			bird.jump()
 	
+def drawPipes():
+	for pipe, gfx in zip(obstacles,pipes):
+		x,y,gap = pipe.getPos()
+		upper, lower = gfx
+		if x < 0:
+			# Reset the pipe
+			pipe.setX(WIDTH)
+			pipe.setY(randint(30, HEIGHT-GAP-30))
+		
+		canvas.coords(upper, x, 0, x+20, y)
+		canvas.coords(lower, x, y+GAP, x+20, HEIGHT)
+		
+
+def updatePipes():
+	for pipe in obstacles:
+		pipe.update()
+
+def checkCollision():
+	for i in birds:
+		bird, gfx = i
+		x,y = bird.getPos()
+		pipe = obstacles[0]
+		px, py, gap = pipe.getPos()
+		if (x > px and x < px+gap) and (y > py+gap or y < py):
+			bird.die()
+			birds.remove([bird, gfx])
+
+
+pipes = []
+obstacles = []
+obstacles.append(Pipe(500, HEIGHT/2, GAP))
+
 main = Tk()
 main.resizable(width = False, height = False)
 main.title("Flappy Bird")
-main.geometry('550x700')
+main.geometry( '{}x{}'.format(WIDTH, HEIGHT) )
+canvas = Canvas(main, width=WIDTH, height=HEIGHT)
+canvas.pack()
 
-center(main)
+birds = []
+for i in range(100):
+	bird = Bird(100, randint(50, 650))
 
-BIRD_Y = 200
-PIPE_X = 550
-PIPE_HOLE = 0
-NOW_PAUSE = False
-
-BEST_SCORE = 0
-
-if os.path.isfile("data.dat"):
-	scoreFile = open('data.dat')
-	BEST_SCORE = int(scoreFile.read())
-	scoreFile.close()
-else:
-	scoreFile = open('data.dat', 'w')
-	scoreFile.write(str(BEST_SCORE))
-	scoreFile.close()
-
-w = Canvas(main, width = 550, height = 700, background = "#4EC0CA", bd=0, highlightthickness=0)
-w.pack()
-
-birdImg = PhotoImage(file="images/bird.gif")
-bird = w.create_image(100, BIRD_Y, image=birdImg)
-
-up_count = 0
-endRectangle = endBest = endScore = None
-
-pipeUp = w.create_rectangle(PIPE_X, 0, PIPE_X + 100, PIPE_HOLE, fill="#74BF2E", outline="#74BF2E")
-pipeDown = w.create_rectangle(PIPE_X, PIPE_HOLE + 200, PIPE_X + 100, 700, fill="#74BF2E", outline="#74BF2E")
-score_w = w.create_text(15, 45, text="0", font='Impact 60', fill='#ffffff', anchor=W)
-
-
-def generatePipeHole():
-	global PIPE_HOLE
-	global SCORE
-	global FRAMERATE
-	SCORE += 1
-	w.itemconfig(score_w, text=str(SCORE))
-	PIPE_HOLE = random.randint(50, 500)
-	if SCORE + 1 % 7 == 0 and SCORE != 0: 
-		FRAMERATE-=1
-	#print("Score: " + str(SCORE))
-
-generatePipeHole()
-
-def birdUp(event = None):
-	global BIRD_Y
-	global up_count
-	global NOW_PAUSE
+	x, y = bird.getPos()
+	img = PhotoImage(file="images/bird.gif")
+	gfx = canvas.create_image(x, y,image=img)
 	
-	if NOW_PAUSE == False: 
-		BIRD_Y -= 20
-		if BIRD_Y <= 0: BIRD_Y = 0
-		w.coords(bird, 100, BIRD_Y)
-		if up_count < 5:
-			up_count += 1
-			main.after(FRAMERATE, birdUp)
-			
-		else: up_count = 0
-	else:
-		restartGame()
+	birds.append([bird, gfx])
 
-def birdDown():
-	global BIRD_Y
-	global NOW_PAUSE
 
-	BIRD_Y += 8
-	if BIRD_Y >= 700: BIRD_Y = 700
-	w.coords(bird, 100, BIRD_Y)
-	if NOW_PAUSE == False: main.after(FRAMERATE,birdDown)
 
-def pipesMotion():
-	global PIPE_X
-	global PIPE_HOLE
-	global NOW_PAUSE
+pipes.append([canvas.create_rectangle(0,HEIGHT/3, 20, GAP, fill='green'),
+				canvas.create_rectangle(0,HEIGHT/3, 20, GAP, fill='blue')])
 
-	PIPE_X -= 5
-	w.coords(pipeUp, PIPE_X, 0, PIPE_X + 100, PIPE_HOLE)
-	w.coords(pipeDown, PIPE_X, PIPE_HOLE + 200, PIPE_X + 100, 700)
-	
-	if PIPE_X < -100: 
-		PIPE_X = 550
-		generatePipeHole()
-	
-	if NOW_PAUSE == False: main.after(FRAMERATE, pipesMotion)
-
-def engGameScreen():
-	global endRectangle
-	global endScore
-	global endBest
-	endRectangle = w.create_rectangle(0, 0, 550, 700, fill='#4EC0CA')
-	endScore = w.create_text(15, 200, text="Your score: " + str(SCORE), font='Impact 50', fill='#ffffff', anchor=W)
-	endBest = w.create_text(15, 280, text="Best score: " + str(BEST_SCORE), font='Impact 50', fill='#ffffff', anchor=W)
-
-def detectCollision():
-	global NOW_PAUSE
-	global BEST_SCORE
-
-	if (PIPE_X < 150 and PIPE_X + 100 >= 55) and (BIRD_Y < PIPE_HOLE + 45 or BIRD_Y > PIPE_HOLE + 175):
-		#print("Collision")
-		NOW_PAUSE = True
-		if SCORE > BEST_SCORE:
-			BEST_SCORE = SCORE
-			scoreFile = open('data.dat', 'w')
-			scoreFile.write(str(BEST_SCORE))
-			scoreFile.close()
-		#print("Pause")
-		engGameScreen()
-	if NOW_PAUSE == False: main.after(FRAMERATE, detectCollision)
-
-def restartGame():
-	global PIPE_X
-	global BIRD_Y
-	global SCORE
-	global NOW_PAUSE
-	global FRAMERATE
-
-	BIRD_Y = 200
-	PIPE_X = 550
-	SCORE = -1
-	FRAMERATE = 20
-	NOW_PAUSE = False
-	w.delete(endScore)
-	w.delete(endRectangle)
-	w.delete(endBest)
-	generatePipeHole()
-	main.after(FRAMERATE, birdDown)
-	main.after(FRAMERATE, pipesMotion)
-	main.after(FRAMERATE, detectCollision)
-	
-main.after(FRAMERATE, birdDown)
-main.after(FRAMERATE, pipesMotion)
-main.after(FRAMERATE, detectCollision)
-main.bind("<space>", birdUp)
+main.after(FRAMERATE, update)
+# main.bind("<space>", bird.jump) # Make neural network to press space
 main.mainloop()
